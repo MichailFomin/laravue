@@ -6,6 +6,9 @@ import * as yup from 'yup';
 
 
 const users = ref([]);
+const editing = ref(false);
+const formValues = ref();
+const form = ref(null);
 
 const getUsers = () => {
   axios.get('/api/users')
@@ -14,19 +17,76 @@ const getUsers = () => {
   })
 };
 
-const schema = yup.object({
+const createUserSchema = yup.object({
   name: yup.string().required(),
   email: yup.string().email().required(),
   password: yup.string().required().min(8),
+});
+
+const editUserSchema = yup.object({
+  name: yup.string().required(),
+  email: yup.string().email().required(),
+  // password: yup.string().when((password, schema) => {
+  //   //TODO: fix, password check to 'undefined'. This always true
+  //   return password ? schema.required().min(8) : schema;
+  // }),
+  password: yup.string().notRequired().test('password', 'Passwords must be be minimum of 8 characters', function(value) {
+    if (!!value) {
+      const schema = yup.string().min(8);
+      return schema.isValidSync(value);
+    }
+    return true;
+  }),
 })
 
 const createUser = (values) => {
   axios.post('/api/users', values)
       .then((response) => {
-        users.value.push(response.data);
-        $('#createUserModal').modal('hide');
+        users.value.data.unshift(response.data);
+        $('#userFormModal').modal('hide');
         useResetForm();
       });
+};
+
+const addUser = () => {
+  editing.value = false;
+  $('#userFormModal').modal('show');
+};
+
+const editUser = (user) => {
+  form.value.resetForm();
+  editing.value = true;
+  $('#userFormModal').modal('show');
+  formValues.value = {
+    id: user.id,
+    name: user.name,
+    email: user.email
+  };
+};
+
+const updateUser = (values) => {
+  console.log(formValues);
+  console.log(values);
+  axios.put('/api/users/' + formValues.value.id, values)
+  .then((response) => {
+    const index = users.value.findIndex(user => user.id === response.data.id);
+    users.value[index] = response.data;
+    $('#userFormModal').modal('hide');
+  })
+      .catch((error) => {
+    console.log(error);
+  })
+      .finally(() => {
+    form.value.resetForm();
+  });
+};
+
+const handleSubmit = (values) => {
+  if (editing.value) {
+    updateUser(values);
+  }  else {
+    createUser(values);
+  }
 };
 
 onMounted(() => {
@@ -55,7 +115,7 @@ onMounted(() => {
 
   <div class="content">
     <div class="container-fluid">
-      <button type="button" class="mb-2 btn btn-primary" data-toggle="modal" data-target="#createUserModal">Add New User</button>
+      <button @click="addUser" type="button" class="mb-2 btn btn-primary">Add New User</button>
       <div class="card">
         <div class="card-body">
           <table class="table table-bordered">
@@ -76,7 +136,9 @@ onMounted(() => {
                 <td>{{ user.email}}</td>
                 <td>-</td>
                 <td>-</td>
-                <td>-</td>
+                <td>
+                  <a href="#" @click.prevent="editUser(user)"><i class="fa fa-edit"></i></a>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -86,17 +148,20 @@ onMounted(() => {
   </div>
 
   <!-- Modal -->
-  <div class="modal fade" id="createUserModal" data-backdrop="static" tabindex="-1" role="dialog"
+  <div class="modal fade" id="userFormModal" data-backdrop="static" tabindex="-1" role="dialog"
        aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="staticBackdropLabel">Add New User</h5>
+          <h5 class="modal-title" id="staticBackdropLabel">
+            <span v-if="editing">Edit User</span>
+            <span v-else>Add New User</span>
+          </h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
-        <Form @submit="createUser" :validation-schema="schema" v-slot="{ errors }">
+        <Form ref="form" @submit="handleSubmit" :validation-schema="editing ? editUserSchema : createUserSchema" v-slot="{ errors }" :initial-values="formValues">
           <div class="modal-body">
             <form autocomplete="off">
               <div class="form-group">
