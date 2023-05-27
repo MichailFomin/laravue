@@ -1,10 +1,12 @@
 <script setup>
 import axios from 'axios';
 import { ref, onMounted, reactive} from 'vue';
-import {Form, Field } from 'vee-validate';
+import { Form, Field } from 'vee-validate';
 import * as yup from 'yup';
+import { useToastr } from '../../toastr.js';
 
 
+const toastr = useToastr();
 const users = ref([]);
 const editing = ref(false);
 const formValues = ref();
@@ -42,11 +44,13 @@ const editUserSchema = yup.object({
 const createUser = (values, {resetForm, setErrors }) => {
   axios.post('/api/users', values)
       .then((response) => {
-        users.value.data.unshift(response.data);
+        users.value.push(response.data);
         $('#userFormModal').modal('hide');
-        useResetForm();
+        resetForm();
+        toastr.success('User updated successfully!');
       })
   .catch((error) => {
+    console.log(error);
     if (error.response.data.errors) {
       setErrors(error.response.data.errors);
     }
@@ -70,17 +74,15 @@ const editUser = (user) => {
 };
 
 const updateUser = (values, { setErrors }) => {
-  console.log(formValues);
-  console.log(values);
   axios.put('/api/users/' + formValues.value.id, values)
   .then((response) => {
     const index = users.value.findIndex(user => user.id === response.data.id);
     users.value[index] = response.data;
     $('#userFormModal').modal('hide');
+    toastr.success('User updated successfully!');
   })
       .catch((error) => {
         setErrors(error.response.data.errors);
-    console.log(error);
   });
 };
 
