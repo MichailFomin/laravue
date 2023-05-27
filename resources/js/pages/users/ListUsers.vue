@@ -47,7 +47,9 @@ const createUser = (values, {resetForm, setErrors }) => {
         useResetForm();
       })
   .catch((error) => {
-    setErrors(error.response.data.errors);
+    if (error.response.data.errors) {
+      setErrors(error.response.data.errors);
+    }
   })
 };
 
@@ -67,7 +69,7 @@ const editUser = (user) => {
   };
 };
 
-const updateUser = (values) => {
+const updateUser = (values, { setErrors }) => {
   console.log(formValues);
   console.log(values);
   axios.put('/api/users/' + formValues.value.id, values)
@@ -77,10 +79,8 @@ const updateUser = (values) => {
     $('#userFormModal').modal('hide');
   })
       .catch((error) => {
+        setErrors(error.response.data.errors);
     console.log(error);
-  })
-      .finally(() => {
-    form.value.resetForm();
   });
 };
 
