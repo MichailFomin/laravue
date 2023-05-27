@@ -39,7 +39,7 @@ const editUserSchema = yup.object({
   }),
 })
 
-const createUser = (values, {resetForm, setFieldError }) => {
+const createUser = (values, {resetForm, setErrors }) => {
   axios.post('/api/users', values)
       .then((response) => {
         users.value.data.unshift(response.data);
@@ -47,7 +47,7 @@ const createUser = (values, {resetForm, setFieldError }) => {
         useResetForm();
       })
   .catch((error) => {
-    setFieldError('email', error.response.data.errors.email[0]);
+    setErrors(error.response.data.errors);
   })
 };
 
