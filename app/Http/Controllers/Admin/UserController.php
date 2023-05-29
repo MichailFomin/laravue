@@ -10,14 +10,7 @@ class UserController extends Controller
 {
     public function index()
     {
-        $user = User::latest()->get()->map(function ($user) {
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'created_at' => $user->created_at->toFormattedDate(),
-            ];
-        });
+        $user = User::latest()->get();
 
         return $user;
     }
